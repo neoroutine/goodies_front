@@ -1,7 +1,6 @@
 [package]
-name = "eframe_template"
+name = "goodies_front"
 version = "0.1.0"
-authors = ["Emil Ernerfeldt <emil.ernerfeldt@gmail.com>"]
 edition = "2021"
 rust-version = "1.65"
 
@@ -9,11 +8,12 @@ rust-version = "1.65"
 [dependencies]
 egui = "0.21.0"
 eframe = { version = "0.21.0", default-features = false, features = [
-    "accesskit",     # Make egui comptaible with screen readers. NOTE: adds a lot of dependencies.
     "default_fonts", # Embed the default egui fonts.
     "glow",          # Use the glow rendering backend. Alternative: "wgpu".
     "persistence",   # Enable restoring app state when restarting the app.
 ] }
+ehttp = "*"
+poll-promise = "*"
 
 # You only need serde if you want app persistence:
 serde = { version = "1", features = ["derive"] }

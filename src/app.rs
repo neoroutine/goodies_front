@@ -1,6 +1,9 @@
+use std::sync::{Arc, Mutex};
+use poll_promise::{Promise, Sender};
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
+
 pub struct TemplateApp {
     // Example stuff:
     label: String,
@@ -8,6 +11,12 @@ pub struct TemplateApp {
     // this how you opt-out of serialization of a member
     #[serde(skip)]
     value: f32,
+
+    #[serde(skip)]
+    promise: Option<Promise<String>>,
+
+    #[serde(skip)]
+    text: String,
 }
 
 impl Default for TemplateApp {
@@ -16,6 +25,8 @@ impl Default for TemplateApp {
             // Example stuff:
             label: "Hello World!".to_owned(),
             value: 2.7,
+            promise: Default::default(),
+            text: String::from("Nothing to be seen"),
         }
     }
 }
@@ -45,7 +56,7 @@ impl eframe::App for TemplateApp {
     /// Called each time the UI needs repainting, which may be many times per second.
     /// Put your widgets into a `SidePanel`, `TopPanel`, `CentralPanel`, `Window` or `Area`.
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        let Self { label, value } = self;
+        let Self { label, value, promise, text } = self;
 
         // Examples of how to create different panels and windows.
         // Pick whichever suits you.
@@ -95,12 +106,34 @@ impl eframe::App for TemplateApp {
         egui::CentralPanel::default().show(ctx, |ui| {
             // The central panel the region left after adding TopPanel's and SidePanel's
 
-            ui.heading("eframe template");
-            ui.hyperlink("https://github.com/emilk/eframe_template");
-            ui.add(egui::github_link_file!(
-                "https://github.com/emilk/eframe_template/blob/master/",
-                "Source code."
-            ));
+            //poll_promise
+            //Arcs and clone to use it in closure
+            ui.heading("goodies_front");
+            if ui.button("Goodies").clicked()
+            {
+                let (sender, promise) = Promise::new();
+
+                let request = ehttp::Request::get("http://127.0.0.1:8090/goodies");
+                ehttp::fetch(request, move |response| 
+                {
+                    let response_text = String::from(response.unwrap().text().unwrap());
+                    sender.send(response_text);
+                });
+                self.promise = Some(promise);
+            }
+
+            if let Some(promise) = &self.promise
+            {
+                if let Some(result) = promise.ready()
+                {
+                    ui.label(format!("ALLO: {:?}", result));
+                }
+                else
+                {
+                    ui.spinner();
+                }
+            }
+            
             egui::warn_if_debug_build(ui);
         });
 
